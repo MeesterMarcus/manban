@@ -73,6 +73,8 @@ A simple Jira-like task board application with a Node.js/TypeScript backend and 
 
 ## Running the Application
 
+## Option 1: Running Locally (npm)
+
 You need to run both the backend and frontend servers concurrently in separate terminals.
 
 1.  **Start the Backend Server:**
@@ -86,7 +88,37 @@ You need to run both the backend and frontend servers concurrently in separate t
     *   Start the development server: `npm start`
     *   The application should automatically open in your browser, usually at `http://localhost:3000`.
 
+## Option 2: Running with Docker Compose (Recommended for Production-like)
+
+Ensure you have Docker and Docker Compose installed.
+
+1.  **Build and Start Containers:**
+    From the project root directory, run:
+    ```bash
+    docker-compose up --build
+    ```
+    *   This command will build the Docker images for both the frontend and backend (if they don't exist or have changed) and then start the containers.
+    *   Use the `-d` flag (`docker-compose up --build -d`) to run in detached mode (in the background).
+
+2.  **Access the Application:**
+    *   The frontend should be accessible at `http://localhost:8080` (mapped to the Nginx container).
+    *   The backend API is accessible at `http://localhost:3001` (mapped to the backend container).
+
+3.  **Stopping Containers:**
+    *   If running in the foreground, press `Ctrl + C`.
+    *   If running in detached mode, use `docker-compose down` from the project root directory.
+
 ## Available Scripts
+
+### Root (`./`)
+
+*   `npm run install:all`: Installs dependencies for root and both workspaces.
+*   `npm run dev:backend`: Runs `npm start` in the `backend` workspace.
+*   `npm run dev:frontend`: Runs `npm start` in the `frontend` workspace.
+*   `npm run build:backend`: Runs `npm run build` in the `backend` workspace.
+*   `npm run build:frontend`: Runs `npm run build` in the `frontend` workspace.
+*   `npm run build`: Builds both backend and frontend.
+*   `npm run dev`: Placeholder script (run dev scripts separately).
 
 ### Backend (`./backend`)
 
@@ -103,11 +135,13 @@ You need to run both the backend and frontend servers concurrently in separate t
 
 ## Future Improvements
 
-*   Implement proper database storage instead of in-memory arrays.
+*   Implement proper database storage instead of in-memory arrays (e.g., add a PostgreSQL container to `docker-compose.yml`).
 *   Add user authentication and authorization.
 *   Associate columns and tasks with specific projects.
 *   Implement project creation and switching UI.
 *   Add column drag-and-drop reordering.
 *   Improve error handling and user feedback.
 *   Add more detailed task fields (priority, assignee, due date, etc.).
-*   Write unit and integration tests. 
+*   Write unit and integration tests.
+*   Configure Nginx for optimized production serving (caching, HTTPS).
+*   Use environment variables for configuration (API URLs, database connections). 
