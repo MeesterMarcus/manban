@@ -67,11 +67,13 @@ router.post('/columns/reorder', (req: express.Request, res: express.Response) =>
 // POST /api/tasks - Create a new task
 // @ts-ignore - Suppressing persistent TS2769 overload error
 router.post('/tasks', (req: express.Request, res: express.Response) => {
-  const { title, description, columnId } = req.body;
+  // Destructure new fields from body
+  const { title, description, columnId, priority, dueDate } = req.body;
   if (!title || !columnId) {
     return res.status(400).json({ message: 'Task title and columnId are required' });
   }
-  const result = dataService.addTask(title, columnId, description);
+  // Pass new fields to service function
+  const result = dataService.addTask(title, columnId, description, priority, dueDate);
   if (!result) {
      return res.status(400).json({ message: 'Invalid columnId provided' });
   }

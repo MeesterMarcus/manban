@@ -9,6 +9,8 @@ export interface Task {
   title: string;
   description?: string;
   columnId: string; // Link task to a column
+  priority: 'Low' | 'Medium' | 'High'; // Add priority
+  dueDate?: string; // Add optional due date (ISO string format)
 }
 
 export interface Column {

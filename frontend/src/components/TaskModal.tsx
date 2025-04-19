@@ -47,15 +47,21 @@ const TaskModal: React.FC<TaskModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<Task['priority']>('Medium');
+  const [dueDate, setDueDate] = useState('');
 
   useEffect(() => {
     if (task) {
       setTitle(task.title || '');
       setDescription(task.description || '');
+      setPriority(task.priority || 'Medium');
+      setDueDate(task.dueDate || '');
     } else {
       // Reset form when modal opens with no task (or closes)
       setTitle('');
       setDescription('');
+      setPriority('Medium');
+      setDueDate('');
     }
   }, [task]); // Re-run effect when the task prop changes
 
@@ -71,6 +77,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const currentDesc = task.description || '';
     if (description !== currentDesc) {
         updates.description = description;
+    }
+    if (priority !== (task.priority || 'Medium')) {
+        updates.priority = priority;
+    }
+    if (dueDate !== (task.dueDate || '')) {
+        updates.dueDate = dueDate ? dueDate : undefined;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -123,7 +135,27 @@ const TaskModal: React.FC<TaskModalProps> = ({
             rows={5}
           />
         </div>
-        {/* Add dropdown for column/status change here if needed later */}
+        <div className="form-group">
+          <label htmlFor="taskPriority">Priority</label>
+          <select 
+            id="taskPriority" 
+            value={priority}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setPriority(e.target.value as Task['priority'])}
+          >
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="taskDueDate">Due Date</label>
+          <input 
+            id="taskDueDate"
+            type="date" 
+            value={dueDate}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value)}
+          />
+        </div>
         <div className="form-actions">
            <button type="submit" className="save-button">Save Changes</button>
            <button type="button" onClick={handleDelete} className="delete-button">Delete Task</button>

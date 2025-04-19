@@ -11,6 +11,8 @@ export interface Task {
   title: string;
   description?: string;
   columnId: string; // Tasks belong to a column
+  priority: 'Low' | 'Medium' | 'High'; // Add priority
+  dueDate?: string; // Add optional due date (ISO string format)
 }
 
 // Define the structure for a Column

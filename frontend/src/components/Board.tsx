@@ -233,7 +233,8 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
       if (!title.trim() || !boardData) return;
 
       const tempId = `temp-task-${uuidv4()}`;
-      const optimisticNewTask: Task = { id: tempId, title, columnId };
+      // Add default priority for optimistic update
+      const optimisticNewTask: Task = { id: tempId, title, columnId, priority: 'Medium' }; 
       const optimisticColumn = { ...boardData.columns[columnId] };
       optimisticColumn.taskIds = [tempId, ...optimisticColumn.taskIds]; // Add to top
 

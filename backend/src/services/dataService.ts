@@ -44,9 +44,9 @@ const setupInitialData = () => {
   columnOrder = [todoColId, inProgColId, doneColId];
 
   tasks = {
-    [task1Id]: { id: task1Id, title: 'Implement Backend API', description: 'Add CRUD endpoints', columnId: inProgColId },
-    [task2Id]: { id: task2Id, title: 'Design Frontend UI', columnId: todoColId },
-    [task3Id]: { id: task3Id, title: 'Setup Project Structure', description: 'Initialize project', columnId: doneColId },
+    [task1Id]: { id: task1Id, title: 'Implement Backend API', description: 'Add CRUD endpoints', columnId: inProgColId, priority: 'High', dueDate: '2025-04-30' },
+    [task2Id]: { id: task2Id, title: 'Design Frontend UI', columnId: todoColId, priority: 'Medium' },
+    [task3Id]: { id: task3Id, title: 'Setup Project Structure', description: 'Initialize project', columnId: doneColId, priority: 'Low' },
   };
   console.log('Initial board data set up for default project.');
 };
@@ -108,13 +108,15 @@ export const reorderColumns = (newOrder: string[]): { updatedOrder: string[] } |
 };
 
 // Tasks (acting on default project for now)
-export const addTask = (title: string, columnId: string, description?: string): { newTask: Task, updatedColumn: Column } | null => {
+export const addTask = (title: string, columnId: string, description?: string, priority: Task['priority'] = 'Medium', dueDate?: string): { newTask: Task, updatedColumn: Column } | null => {
     if (!columns[columnId]) return null;
     const newTask: Task = {
         id: uuidv4(),
         title,
         description,
         columnId,
+        priority,
+        dueDate,
     };
     tasks[newTask.id] = newTask;
     columns[columnId].taskIds.unshift(newTask.id);
