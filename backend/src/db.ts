@@ -14,11 +14,9 @@ const pool = new Pool({
   // Fallback values are still useful if .env is missing or vars aren't set
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432', 10),
-  user: process.env.DB_USER || 'kanban_user',
-  // TEMPORARY DEBUG: Hardcode the password directly
-  password: 'supersecretpassword', // <-- Use the actual password string here
-  // password: process.env.DB_PASSWORD || 'supersecretpassword', // <-- Original line
-  database: process.env.DB_NAME || 'kanban_db',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   // Recommended settings for robust connection handling
   max: 20, // Max number of clients in the pool
   idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
