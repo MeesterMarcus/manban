@@ -46,8 +46,9 @@ A simple Jira-like task board application with a Node.js/TypeScript backend and 
 
 ## Prerequisites
 
-*   [Node.js](https://nodejs.org/) (v18 or later recommended - currently using v22)
-*   [npm](https://www.npmjs.com/) (usually comes with Node.js)
+*   [Node.js](https://nodejs.org/) (v22 or later recommended)
+*   [npm](https://www.npmjs.com/) (v10 or later recommended, comes with Node.js)
+*   [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) (for Option 2)
 
 ## Installation
 
@@ -57,81 +58,85 @@ A simple Jira-like task board application with a Node.js/TypeScript backend and 
     cd <repo-folder>
     ```
 
-2.  **Install Backend Dependencies:**
+2.  **Install All Dependencies:**
+    From the project root directory, run:
     ```bash
-    cd backend
     npm install
-    cd ..
     ```
+    This command uses npm workspaces to install dependencies for the root, backend, and frontend.
 
-3.  **Install Frontend Dependencies:**
-    ```bash
-    cd frontend
-    npm install
-    cd ..
-    ```
+## Running the Application (Development)
 
-## Running the Application
+### Option 1: Running Locally (Single Command - Recommended for Dev)
 
-## Option 1: Running Locally (npm)
+From the project **root** directory, simply run:
 
-You need to run both the backend and frontend servers concurrently in separate terminals.
+```bash
+npm run dev
+```
+
+This uses `npm-run-all` to start both the backend API server (typically on `http://localhost:3001`) and the frontend development server (typically on `http://localhost:3000` or the next available port) concurrently in a single terminal.
+
+### Option 2: Running Locally (Manual - Separate Terminals)
+
+If you prefer separate terminals:
 
 1.  **Start the Backend Server:**
-    *   Navigate to the `backend` directory: `cd backend`
-    *   Build the TypeScript code: `npm run build`
-    *   Start the server: `npm start`
-    *   The backend should be running on `http://localhost:3001`.
+    ```bash
+    npm run dev:backend
+    ```
+    (Alternatively: `cd backend && npm start` - requires `npm run build` first if not using nodemon/ts-node)
 
 2.  **Start the Frontend Server:**
-    *   Navigate to the `frontend` directory: `cd frontend`
-    *   Start the development server: `npm start`
-    *   The application should automatically open in your browser, usually at `http://localhost:3000`.
+    In a **separate terminal**, run:
+    ```bash
+    npm run dev:frontend
+    ```
+    (Alternatively: `cd frontend && npm start`)
 
-## Option 2: Running with Docker Compose (Recommended for Production-like)
+## Running the Application (Docker)
 
 Ensure you have Docker and Docker Compose installed.
 
 1.  **Build and Start Containers:**
     From the project root directory, run:
     ```bash
-    docker-compose up --build
+    npm run docker:up:d -- --build
     ```
-    *   This command will build the Docker images for both the frontend and backend (if they don't exist or have changed) and then start the containers.
-    *   Use the `-d` flag (`docker-compose up --build -d`) to run in detached mode (in the background).
+    *   This uses the npm script which runs `docker-compose up -d --build`.
+    *   It builds the images (if needed) and starts the containers in detached mode.
+    *   You can also use `npm run docker:build` and `npm run docker:up` separately.
 
 2.  **Access the Application:**
-    *   The frontend should be accessible at `http://localhost:8080` (mapped to the Nginx container).
-    *   The backend API is accessible at `http://localhost:3001` (mapped to the backend container).
+    *   The frontend is accessible at `http://localhost:8080` (served and proxied by Nginx).
 
-3.  **Stopping Containers:**
-    *   If running in the foreground, press `Ctrl + C`.
-    *   If running in detached mode, use `docker-compose down` from the project root directory.
+3.  **View Logs:**
+    ```bash
+    docker-compose logs -f
+    ```
+    (Or `docker-compose logs backend` / `docker-compose logs frontend` for specific services)
+
+4.  **Stopping Containers:**
+    ```bash
+    npm run docker:down
+    ```
+    (This runs `docker-compose down`)
 
 ## Available Scripts
 
 ### Root (`./`)
 
-*   `npm run install:all`: Installs dependencies for root and both workspaces.
-*   `npm run dev:backend`: Runs `npm start` in the `backend` workspace.
-*   `npm run dev:frontend`: Runs `npm start` in the `frontend` workspace.
-*   `npm run build:backend`: Runs `npm run build` in the `backend` workspace.
-*   `npm run build:frontend`: Runs `npm run build` in the `frontend` workspace.
+*   `npm install`: Installs dependencies for root and all workspaces.
+*   `npm run dev:backend`: Starts the backend development server (`nodemon`).
+*   `npm run dev:frontend`: Starts the frontend development server (`react-scripts start`).
+*   `npm run build:backend`: Runs the TypeScript build for the backend.
+*   `npm run build:frontend`: Creates a production build of the frontend app.
 *   `npm run build`: Builds both backend and frontend.
-*   `npm run dev`: Placeholder script (run dev scripts separately).
-
-### Backend (`./backend`)
-
-*   `npm run build`: Compiles TypeScript to JavaScript (`dist/` folder).
-*   `npm start`: Starts the compiled backend server from the `dist/` folder.
-*   `npm test`: (Not yet implemented) Runs tests.
-
-### Frontend (`./frontend`)
-
-*   `npm start`: Runs the app in development mode.
-*   `npm run build`: Builds the app for production (`build/` folder).
-*   `npm test`: Runs the test runner.
-*   `npm run eject`: Ejects from Create React App configuration (use with caution).
+*   `npm run dev`: Starts **both** backend and frontend development servers concurrently.
+*   `npm run docker:build`: Builds the Docker images using `docker-compose build`.
+*   `npm run docker:up`: Starts the containers using `docker-compose up`.
+*   `npm run docker:up:d`: Starts the containers in detached mode using `docker-compose up -d`.
+*   `npm run docker:down`: Stops and removes the containers using `docker-compose down`.
 
 ## Future Improvements
 
