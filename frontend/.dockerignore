@@ -8,5 +8,5 @@ yarn-error.log*
 Dockerfile
 .dockerignore
 README.md
-src
-public 
+# src # Removed
+# public # Removed 

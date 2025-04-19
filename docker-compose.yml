@@ -3,15 +3,15 @@ version: '3.8' # Specify docker-compose version
 services:
   backend:
     build:
-      context: ./backend # Path to backend Dockerfile directory
-      dockerfile: Dockerfile
+      context: . # Changed context to root directory
+      dockerfile: backend/Dockerfile # Specify path to Dockerfile within context
     ports:
       - "3001:3001" # Map host port 3001 to container port 3001
     environment:
       # Define any backend environment variables here if needed
       # e.g., DATABASE_URL: postgres://user:password@db:5432/mydatabase
       PORT: 3001 # Explicitly set port inside container
-    volumes:
+    volumes: [] # Define as an empty list
       # Optional: Mount local code for development (reflects changes without rebuild)
       # Be cautious with node_modules mounting in Docker
       # - ./backend/src:/app/backend/src 
@@ -20,8 +20,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend # Path to frontend Dockerfile directory
-      dockerfile: Dockerfile
+      context: . # Change context to root directory
+      dockerfile: frontend/Dockerfile # Specify path to Dockerfile
     ports:
       - "8080:80" # Map host port 8080 to container port 80 (Nginx)
     # The frontend container doesn't directly depend on the backend 

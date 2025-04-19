@@ -1,27 +1,32 @@
-# Stage 1: Build the React application
+# Stage 1: Build the React application using workspace context
 FROM node:22-alpine as builder
 
-WORKDIR /app/frontend
+# Set the working directory to the root of the monorepo
+WORKDIR /app
 
+# Copy root package files first
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Copy frontend package files
+COPY frontend/package*.json ./frontend/
 
-# Copy the rest of the frontend app source code
-COPY . .
+# Install ALL workspace dependencies (including root devDependencies)
+RUN npm install --workspaces --include-workspace-root
 
-# Build the React app for production
-RUN npm run build
+# Copy the entire frontend source code
+COPY frontend/ ./frontend/
+
+# Build the React app for production using the workspace command
+RUN npm run build --workspace=frontend
 
 # Stage 2: Serve the built app with Nginx
 FROM nginx:stable-alpine
 
-# Copy the build output from Stage 1
+# Copy the build output from Stage 1 (adjust path relative to root)
 COPY --from=builder /app/frontend/build /usr/share/nginx/html
 
-# Optional: Copy a custom Nginx configuration if needed
-# COPY nginx.conf /etc/nginx/conf.d/default.conf 
+# Copy the custom Nginx configuration (path relative to build context)
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
