@@ -20,7 +20,10 @@
     "docker:up:d": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "db:start": "docker-compose up db -d",
-    "db:stop": "docker-compose stop db"
+    "db:stop": "docker-compose stop db",
+    "test:backend": "npm test --workspace=backend",
+    "test:frontend": "npm test --workspace=frontend -- --no-watch",
+    "test": "npm test --workspaces"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
