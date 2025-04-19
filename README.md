@@ -1,4 +1,4 @@
-# Project Title (e.g., Jira Better Clone)
+# Kanban Board
 
 A simple Jira-like task board application with a Node.js/TypeScript backend and a React/TypeScript frontend.
 
