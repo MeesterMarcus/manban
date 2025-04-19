@@ -1,0 +1,95 @@
+:root {
+  --sidebar-closed-width: 60px;
+  --sidebar-open-width: 220px;
+  --sidebar-transition-speed: 0.3s;
+}
+
+.sidebar {
+  background-color: #0747a6; /* Match header */
+  color: #deebff;
+  padding-top: 20px; /* Space below header */
+  height: 100%; /* Fill parent height */
+  position: relative; /* For positioning toggle button */
+  transition: width var(--sidebar-transition-speed) ease;
+  overflow-x: hidden; /* Hide horizontal overflow during transition */
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+}
+
+.sidebar.open {
+  width: var(--sidebar-open-width);
+}
+
+.sidebar.closed {
+  width: var(--sidebar-closed-width);
+}
+
+.toggle-button {
+  position: absolute;
+  top: 15px; /* Slightly lower */
+  right: 10px; /* Position inside */
+  background-color: #0747a6;
+  color: white;
+  border: 1px solid #a6c5e2; /* Adjusted border */
+  border-radius: 50%;
+  width: 28px; /* Adjusted size */
+  height: 28px; /* Adjusted size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  font-size: 1em; /* Adjusted font */
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15); /* Adjusted shadow */
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.toggle-button:hover {
+  background-color: #0052cc;
+  transform: scale(1.1); /* Added hover effect */
+}
+
+.menu-items {
+  margin-top: 30px; /* Space below toggle button area */
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  color: #deebff;
+  text-decoration: none;
+  white-space: nowrap; /* Prevent label wrapping */
+  border-radius: 3px;
+  margin: 5px 10px;
+  transition: background-color 0.2s ease;
+}
+
+.menu-item:hover {
+  background-color: #0052cc; /* Darker blue on hover */
+}
+
+.menu-icon {
+  font-size: 1.3em;
+  margin-right: 15px;
+  min-width: 20px; /* Ensure icon area has width even when closed */
+  text-align: center;
+}
+
+.menu-label {
+  font-size: 0.95em;
+}
+
+/* Adjust styles when closed */
+.sidebar.closed .menu-label {
+  display: none; /* Hide label */
+}
+
+.sidebar.closed .menu-item {
+  justify-content: center; /* Center icon */
+  padding: 10px 0; /* Adjust padding */
+}
+
+.sidebar.closed .menu-icon {
+  margin-right: 0;
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Board, { setupModal } from './components/Board'; // Import setupModal
 import Header from './components/Header'; // Import Header
+import Sidebar from './components/Sidebar'; // Import Sidebar
 import { fetchDefaultProject } from './services/taskService'; // Import fetch service
 import { Project } from './types'; // Import Project type
 import './App.css'; // Keep general styles if needed, or remove if Board.css covers everything
@@ -30,14 +31,15 @@ function App() {
 
   return (
     <div className="App">
-       {/* Render Header with project name */} 
-      <Header 
-        projectName={projectName} 
-        searchTerm={searchTerm} // Pass searchTerm down
-        onSearchChange={handleSearchChange} // Pass handler down
-      /> 
-      {/* Board component remains below the header */} 
-      <Board searchTerm={searchTerm} /> {/* Pass searchTerm to Board */}
+      <Sidebar /> { /* Render Sidebar */}
+      <div className="main-content"> { /* Wrapper for Header and Board */}
+        <Header 
+          projectName={projectName} 
+          searchTerm={searchTerm} // Pass searchTerm down
+          onSearchChange={handleSearchChange} // Pass handler down
+        /> 
+        <Board searchTerm={searchTerm} /> {/* Pass searchTerm to Board */}
+      </div>
     </div>
   );
 }

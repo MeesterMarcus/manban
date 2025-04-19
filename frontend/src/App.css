@@ -1,6 +1,6 @@
 .App {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */ /* Change to row */
   height: 100vh; /* Full viewport height */
   /* Remove default text-align if not needed */
   /* text-align: center; */
@@ -39,4 +39,23 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column; /* Header on top, Board below */
+  flex-grow: 1; /* Take remaining width */
+  height: 100vh; /* Allow content within to scroll */
+  overflow: hidden; /* Prevent this container itself from scrolling */
+}
+
+/* We need to ensure Header doesn't grow/shrink */
+.app-header {
+    flex-shrink: 0;
+}
+
+/* Ensure Board container within main-content handles its own scrolling */
+.board-container {
+    flex-grow: 1;
+    overflow: hidden; /* Board handles internal scroll */
 }
