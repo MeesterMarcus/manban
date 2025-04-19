@@ -1,3 +1,5 @@
+// Keep the console log in db.ts for now
+
 import express, { Express } from 'express';
 import cors from 'cors';
 // Remove direct type imports, service imports, data storage, etc.

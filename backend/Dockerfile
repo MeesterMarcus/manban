@@ -24,12 +24,13 @@ FROM node:22-alpine
 
 WORKDIR /app/backend
 
-# Copy production dependencies node_modules from builder stage
-# This includes modules installed for the backend workspace
-COPY --from=builder /app/backend/node_modules ./node_modules
-# Also copy root production dependencies if backend relies on them
-# Check if any root dependencies are needed for runtime
-# COPY --from=builder /app/node_modules ./node_modules # Likely not needed unless backend imports from root directly
+# Copy the entire node_modules structure from the builder stage.
+# This includes dependencies for root and all workspaces as installed in the builder.
+# It might include devDependencies but guarantees runtime dependencies are present.
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/backend/node_modules ./node_modules 
+# Note: The second copy might overwrite parts of the first if modules exist in both,
+# but this ensures backend-specific versions take precedence if needed.
 
 # Copy built code (dist) from builder stage
 COPY --from=builder /app/backend/dist ./dist

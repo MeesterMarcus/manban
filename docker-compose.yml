@@ -1,6 +1,19 @@
-version: '3.8' # Specify docker-compose version
-
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: kanban_db
+      POSTGRES_USER: kanban_user
+      POSTGRES_PASSWORD: supersecretpassword # Change this in production!
+    ports:
+      - "5432:5432" # Optional: Map host port if you need external access
+    volumes:
+      - postgres-data:/var/lib/postgresql/data # Persist data
+    networks:
+      - app-network
+
   backend:
     build:
       context: . # Changed context to root directory
@@ -11,12 +24,21 @@ services:
       # Define any backend environment variables here if needed
       # e.g., DATABASE_URL: postgres://user:password@db:5432/mydatabase
       PORT: 3001 # Explicitly set port inside container
+      # Database connection details (referencing the db service)
+      DB_HOST: db # Service name acts as hostname on Docker network
+      DB_PORT: 5432
+      DB_USER: kanban_user
+      DB_PASSWORD: supersecretpassword # Must match POSTGRES_PASSWORD
+      DB_NAME: kanban_db # Must match POSTGRES_DB
     volumes: [] # Define as an empty list
       # Optional: Mount local code for development (reflects changes without rebuild)
       # Be cautious with node_modules mounting in Docker
       # - ./backend/src:/app/backend/src 
     networks:
       - app-network
+    depends_on:
+      - db # Ensure db starts before backend
+    # Removed temporary command override
 
   frontend:
     build:
@@ -24,12 +46,15 @@ services:
       dockerfile: frontend/Dockerfile # Specify path to Dockerfile
     ports:
       - "8080:80" # Map host port 8080 to container port 80 (Nginx)
-    # The frontend container doesn't directly depend on the backend 
-    # Nginx will serve static files, browser calls backend API on port 3001
-    # If Nginx needed to proxy API requests, it would need network access and config
     networks:
       - app-network
+    depends_on:
+      - backend
+    # No direct dependency on db, relies on backend API
 
 networks:
   app-network:
     driver: bridge # Default network driver 
+
+volumes:
+  postgres-data: # Define the named volume for persistence 

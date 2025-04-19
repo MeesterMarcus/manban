@@ -7,13 +7,14 @@ import TaskModal from './TaskModal'; // Import the modal component
 import { 
     fetchBoardData, 
     updateTask, 
+    moveTask,   // For drag & drop
     createTask, 
     createColumn, 
     deleteColumn, 
     renameColumn,
-    deleteTask // Import deleteTask
+    deleteTask
 } from '../services/taskService'; 
-import { BoardData, Task, Column as ColType, AppColumns } from '../types';
+import { BoardData, Task, Column as ColType } from '../types';
 import './Board.css';
 
 // Add searchTerm prop
@@ -34,11 +35,16 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
     const loadBoard = async () => {
       setLoading(true);
       setError(null);
-      const data = await fetchBoardData();
-      if (data) {
-        setBoardData(data);
-      } else {
-        setError('Failed to load board data. Please try again later.');
+      try {
+        const data = await fetchBoardData();
+        if (data) {
+          setBoardData(data);
+        } else {
+          setError('Failed to load board data. Please try again later.');
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError('An error occurred while loading board data.');
       }
       setLoading(false);
     };
@@ -49,14 +55,11 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
-    console.log('onDragEnd fired:', result);
-
     if (!destination || !boardData) return;
 
     const sourceColId = source.droppableId;
     const destColId = destination.droppableId;
 
-    // Prevent changes if dropped in the same spot
     if (sourceColId === destColId && source.index === destination.index) {
       return;
     }
@@ -72,12 +75,13 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
 
     // --- Optimistic UI Update --- 
     const newStartTaskIds = Array.from(startCol.taskIds);
-    newStartTaskIds.splice(source.index, 1); // Remove from start
+    newStartTaskIds.splice(source.index, 1); 
 
     const newFinishTaskIds = Array.from(finishCol.taskIds);
-    // Insert into finish only if different column or different index
-    if (startCol.id !== finishCol.id || source.index !== destination.index) {
-        newFinishTaskIds.splice(destination.index, 0, draggableId); // Insert into finish
+    if (startCol.id !== finishCol.id) { // Only add to finish if different column
+        newFinishTaskIds.splice(destination.index, 0, draggableId); 
+    } else { // Same column, different position
+        newFinishTaskIds.splice(destination.index, 0, draggableId); // Already removed, just add
     }
 
     const optimisticColumns = {
@@ -86,14 +90,23 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
             ...startCol,
             taskIds: newStartTaskIds,
         },
-        [finishCol.id]: {
-            ...finishCol,
-            taskIds: newFinishTaskIds,
-        },
+        // Update finishCol only if it changed
+        ...(startCol.id !== finishCol.id && {
+            [finishCol.id]: {
+                ...finishCol,
+                taskIds: newFinishTaskIds,
+            }
+        })
     };
+    // If moving within same column, update only that column's taskIds
+    if (startCol.id === finishCol.id) {
+        optimisticColumns[startCol.id].taskIds = newFinishTaskIds;
+    }
 
     const optimisticTask = { ...task, columnId: destColId }; 
     const optimisticTasks = { ...boardData.tasks, [draggableId]: optimisticTask };
+
+    const originalBoardData = boardData; // Store original state for potential revert
 
     setBoardData({
         ...boardData,
@@ -101,43 +114,26 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
         columns: optimisticColumns,
     });
 
-    // --- API Call --- 
-    try {
-        const updatePayload = {
-            sourceColumnId: sourceColId,
-            destColumnId: destColId,
-            sourceIndex: source.index,
-            destIndex: destination.index,
-            columnId: destColId // Explicitly update columnId
-        };
-        const response = await updateTask(draggableId, updatePayload);
+    // --- API Call for Moving Task --- 
+    const success = await moveTask(
+        draggableId, 
+        sourceColId, 
+        source.index, 
+        destColId, 
+        destination.index
+    );
 
-        if (!response || !response.task || !response.sourceColumn || !response.destColumn) {
-            throw new Error('Invalid response from server after task update');
-        }
-        
-        // Update state definitively based on successful API response
-        // This ensures consistency if backend logic differs slightly
-        setBoardData(prevData => {
-            if (!prevData) return null;
-            return {
-                ...prevData,
-                tasks: { ...prevData.tasks, [response.task.id]: response.task },
-                columns: {
-                    ...prevData.columns,
-                    [response.sourceColumn!.id]: response.sourceColumn!,
-                    [response.destColumn!.id]: response.destColumn!,
-                },
-            };
-        });
-
-    } catch (err) {
-        console.error("Failed to update task position on backend:", err);
+    if (!success) {
+        console.error("Failed to update task position on backend.");
         setError('Failed to move task. Reverting changes.');
-        // Revert UI - Simple approach: re-fetch data
-        const freshData = await fetchBoardData();
-        if (freshData) setBoardData(freshData);
+        // Revert UI to original state before optimistic update
+        setBoardData(originalBoardData); 
+        // Optionally, refetch for guaranteed consistency
+        // const freshData = await fetchBoardData();
+        // if (freshData) setBoardData(freshData);
     }
+    // If successful, the optimistic update holds. No need to update state again 
+    // unless backend needs to return the definitive new task/column orders.
   };
 
   // --- Column Operations ---
@@ -145,18 +141,22 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
     e.preventDefault();
     if (!newColumnTitle.trim() || !boardData) return;
 
-    const tempId = `temp-${uuidv4()}`; // Optimistic temp ID
+    const tempId = `temp-col-${uuidv4()}`; // Optimistic temp ID
     const optimisticNewColumn: ColType = { id: tempId, title: newColumnTitle, taskIds: [] };
     const optimisticColumnOrder = [...boardData.columnOrder, tempId];
     const optimisticColumns = { ...boardData.columns, [tempId]: optimisticNewColumn };
 
+    const originalBoardData = boardData; // Store for revert
     setBoardData({ ...boardData, columns: optimisticColumns, columnOrder: optimisticColumnOrder });
     setNewColumnTitle('');
 
-    const result = await createColumn(newColumnTitle);
-    if (result && boardData) {
+    try {
+      const result = await createColumn(newColumnTitle);
+      if (!result || !result.columns || !result.columnOrder) {
+          throw new Error('Invalid response when creating column');
+      }
       // Replace temp column with real data from backend
-      const realColumn = Object.values(result.columns)[0];
+      const realColumn = Object.values(result.columns)[0]; 
       setBoardData(prevData => {
           if (!prevData) return null;
           const finalColumns = { ...prevData.columns };
@@ -164,117 +164,126 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
           finalColumns[realColumn.id] = realColumn; // Add real
           return { ...prevData, columns: finalColumns, columnOrder: result.columnOrder };
       });
-    } else {
-      setError('Failed to create column.');
-      // Revert optimistic update
-       setBoardData(prevData => {
-           if(!prevData) return null;
-           const revertedColumns = { ...prevData.columns };
-           delete revertedColumns[tempId];
-           const revertedOrder = prevData.columnOrder.filter(id => id !== tempId);
-           return { ...prevData, columns: revertedColumns, columnOrder: revertedOrder };
-       });
+    } catch (err) {
+        console.error("Failed to create column:", err);
+        setError('Failed to create column.');
+        // Revert optimistic update
+        setBoardData(originalBoardData);
     }
   };
 
   const handleRenameColumn = async (columnId: string, newTitle: string) => {
       if (!boardData || !boardData.columns[columnId] || boardData.columns[columnId].title === newTitle) return;
 
-      const oldTitle = boardData.columns[columnId].title;
+      const originalColumn = boardData.columns[columnId];
       // Optimistic UI
       setBoardData(prev => prev ? {
           ...prev,
           columns: { ...prev.columns, [columnId]: { ...prev.columns[columnId], title: newTitle } }
       } : null);
 
-      const updatedColumn = await renameColumn(columnId, newTitle);
-      if (!updatedColumn) {
+      try {
+        const updatedColumn = await renameColumn(columnId, newTitle);
+        if (!updatedColumn) {
+            throw new Error('Column not found or rename failed');
+        }
+         // API success, update definitively (though optimistic might be same)
+         setBoardData(prev => prev ? {
+             ...prev,
+             columns: { ...prev.columns, [columnId]: updatedColumn }
+         } : null);
+      } catch (err) {
+          console.error("Failed to rename column:", err);
           setError('Failed to rename column.');
           // Revert
           setBoardData(prev => prev ? {
               ...prev,
-              columns: { ...prev.columns, [columnId]: { ...prev.columns[columnId], title: oldTitle } }
+              columns: { ...prev.columns, [columnId]: originalColumn }
           } : null);
       }
-       // No need to update state again if API succeeds, optimistic update holds
   };
 
   const handleDeleteColumn = async (columnId: string) => {
       if (!boardData || !boardData.columns[columnId]) return;
-      if (!window.confirm(`Delete column "${boardData.columns[columnId].title}" and ALL its tasks?`)) return;
-
+      
       const columnToDelete = boardData.columns[columnId];
-      const tasksToDelete = columnToDelete.taskIds.map(id => boardData.tasks[id]).filter(Boolean);
-      const originalBoardData = { ...boardData }; // Store for potential revert
+      if (!window.confirm(`Delete column "${columnToDelete.title}" and ALL its tasks?`)) return;
+
+      const originalBoardData = JSON.parse(JSON.stringify(boardData)); // Deep copy for potential revert
 
       // Optimistic UI update
-      const optimisticColumns = { ...boardData.columns };
-      delete optimisticColumns[columnId];
-      const optimisticTasks = { ...boardData.tasks };
-      columnToDelete.taskIds.forEach(taskId => delete optimisticTasks[taskId]);
-      const optimisticColumnOrder = boardData.columnOrder.filter(id => id !== columnId);
+      setBoardData(prevData => {
+          if (!prevData) return null;
+          const optimisticColumns = { ...prevData.columns };
+          delete optimisticColumns[columnId];
+          const optimisticTasks = { ...prevData.tasks };
+          columnToDelete.taskIds.forEach(taskId => delete optimisticTasks[taskId]);
+          const optimisticColumnOrder = prevData.columnOrder.filter(id => id !== columnId);
+          return { tasks: optimisticTasks, columns: optimisticColumns, columnOrder: optimisticColumnOrder };
+      });
 
-      setBoardData({ tasks: optimisticTasks, columns: optimisticColumns, columnOrder: optimisticColumnOrder });
-
-      const result = await deleteColumn(columnId);
-      if (!result) {
+      try {
+        const result = await deleteColumn(columnId);
+        if (!result || !result.columnOrder) { 
+             throw new Error('Column not found or delete failed');
+        }
+        // API success, ensure columnOrder matches backend
+        setBoardData(prev => prev ? { ...prev, columnOrder: result.columnOrder } : null);
+      } catch(err) {
+          console.error("Failed to delete column:", err);
           setError('Failed to delete column.');
-          // Revert - more complex, restore columns, tasks, and order
+          // Revert
           setBoardData(originalBoardData);
-      } 
-      // If API succeeds, optimistic update holds. Ensure columnOrder matches backend if needed
-      else if (result.columnOrder) { 
-           setBoardData(prev => prev ? { ...prev, columnOrder: result.columnOrder } : null);
       }
   };
 
   // --- Task Operations ---
-  const handleAddTask = async (columnId: string, title: string) => {
+  const handleAddTask = async (columnId: string, title: string, priority?: Task['priority'], dueDate?: string) => {
       if (!title.trim() || !boardData) return;
 
-      const tempId = `temp-task-${uuidv4()}`;
-      // Add default priority for optimistic update
-      const optimisticNewTask: Task = { id: tempId, title, columnId, priority: 'Medium' }; 
-      const optimisticColumn = { ...boardData.columns[columnId] };
-      optimisticColumn.taskIds = [tempId, ...optimisticColumn.taskIds]; // Add to top
+      const tempId = `temp-task-${uuidv4()}`; // Use descriptive temp ID
+      const optimisticNewTask: Task = { id: tempId, title, columnId, priority: priority || 'Medium', dueDate }; 
+      
+      const originalBoardData = boardData; // Store for revert
+      // Optimistic UI update
+      setBoardData(prev => {
+          if (!prev) return null;
+          const optimisticColumn = { ...prev.columns[columnId] };
+          optimisticColumn.taskIds = [tempId, ...optimisticColumn.taskIds]; // Add to top
+          return {
+              ...prev,
+              tasks: { ...prev.tasks, [tempId]: optimisticNewTask },
+              columns: { ...prev.columns, [columnId]: optimisticColumn },
+          };
+      });
 
-      setBoardData(prev => prev ? {
-          ...prev,
-          tasks: { ...prev.tasks, [tempId]: optimisticNewTask },
-          columns: { ...prev.columns, [columnId]: optimisticColumn },
-      } : null);
-
-      const result = await createTask(title, columnId);
-      if (result && boardData) {
-           setBoardData(prev => {
-               if (!prev) return null;
-               const finalTasks = { ...prev.tasks };
-               delete finalTasks[tempId]; // Remove temp task
-               finalTasks[result.task.id] = result.task; // Add real task
-               return {
-                   ...prev,
-                   tasks: finalTasks,
-                   columns: { ...prev.columns, [columnId]: result.column }, // Update column with new taskIds order from backend
-               };
-           });
-      } else {
-          setError('Failed to create task.');
-           // Revert
-          setBoardData(prev => {
-               if (!prev) return null;
-               const revertedTasks = { ...prev.tasks };
-               delete revertedTasks[tempId];
-               const revertedColumn = { ...prev.columns[columnId] };
-               revertedColumn.taskIds = revertedColumn.taskIds.filter(id => id !== tempId);
-               return {
-                   ...prev,
-                   tasks: revertedTasks,
-                   columns: { ...prev.columns, [columnId]: revertedColumn },
-               };
-           });
+      try {
+        const result = await createTask(columnId, title, priority, dueDate);
+        if (!result || !result.task || !result.columnTaskIds) {
+            throw new Error('Invalid response when creating task');
+        }
+        // API Success: Replace temp task with real one, update column's taskIds
+        setBoardData(prev => {
+            if (!prev) return null;
+            const finalTasks = { ...prev.tasks };
+            delete finalTasks[tempId]; // Remove temp task
+            finalTasks[result.task.id] = result.task; // Add real task
+            const finalColumn = { ...prev.columns[columnId], taskIds: result.columnTaskIds };
+            return {
+                ...prev,
+                tasks: finalTasks,
+                columns: { ...prev.columns, [columnId]: finalColumn },
+            };
+        });
+      } catch (err) {
+        console.error("Failed to create task:", err);
+        setError('Failed to create task.');
+        // Revert optimistic update
+        setBoardData(originalBoardData);
       }
   };
 
+  // --- Modal Logic ---
   const openModal = (task: Task) => {
     setSelectedTask(task);
     setIsModalOpen(true);
@@ -285,161 +294,192 @@ const Board: React.FC<BoardProps> = ({ searchTerm }) => { // Destructure searchT
     setSelectedTask(null);
   };
 
-  const handleSaveTask = async (taskId: string, updates: Partial<Task>) => {
-    if (!boardData) return;
+  // Called from TaskModal when saving
+  const handleSaveTask = async (taskId: string, updates: Partial<Omit<Task, 'id' | 'columnId'>>) => {
+    if (!boardData || !boardData.tasks[taskId]) return;
+
     const originalTask = boardData.tasks[taskId];
-
-    // Optimistic UI Update
-    const optimisticTask = { ...originalTask, ...updates };
-    setBoardData(prev => prev ? {
-        ...prev,
-        tasks: { ...prev.tasks, [taskId]: optimisticTask }
+    // Optimistic UI update
+    const optimisticUpdatedTask = { ...originalTask, ...updates };
+    setBoardData(prev => prev ? { 
+        ...prev, 
+        tasks: { ...prev.tasks, [taskId]: optimisticUpdatedTask }
     } : null);
+    closeModal(); // Close modal immediately
 
-    const result = await updateTask(taskId, updates);
-    if (!result || !result.task) {
-      setError('Failed to save task details.');
-       // Revert
-       setBoardData(prev => prev ? {
-           ...prev,
-           tasks: { ...prev.tasks, [taskId]: originalTask }
-       } : null);
-    } else {
-        // Update state definitively (optional, if backend returns more info)
-         setBoardData(prev => prev ? {
-           ...prev,
-           tasks: { ...prev.tasks, [result.task.id]: result.task }
-       } : null);
+    try {
+        const updatedTask = await updateTask(taskId, updates);
+        if (!updatedTask) {
+            throw new Error('Task not found or update failed');
+        }
+         // API success, update definitively (though optimistic might be same)
+        setBoardData(prev => prev ? { 
+            ...prev, 
+            tasks: { ...prev.tasks, [taskId]: updatedTask }
+        } : null);
+    } catch (err) {
+        console.error("Failed to save task:", err);
+        setError('Failed to save task updates.');
+        // Revert optimistic update
+        setBoardData(prev => prev ? { 
+            ...prev, 
+            tasks: { ...prev.tasks, [taskId]: originalTask } // Restore original task
+        } : null);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-      if (!boardData) return;
-      const taskToDelete = boardData.tasks[taskId];
-      if (!taskToDelete) return;
+    if (!boardData || !boardData.tasks[taskId]) return;
+    
+    const taskToDelete = boardData.tasks[taskId];
+    const originalBoardData = JSON.parse(JSON.stringify(boardData)); // Deep copy for revert
 
-      const originalBoardData = { ...boardData }; // Store for revert
-      const columnId = taskToDelete.columnId;
-      const column = boardData.columns[columnId];
+    // Optimistic UI Update
+    setBoardData(prevData => {
+        if (!prevData) return null;
+        const columnId = taskToDelete.columnId;
+        const optimisticTasks = { ...prevData.tasks };
+        delete optimisticTasks[taskId];
+        let optimisticColumns = { ...prevData.columns };
+        if (optimisticColumns[columnId]) {
+            optimisticColumns[columnId] = { 
+                ...optimisticColumns[columnId], 
+                taskIds: optimisticColumns[columnId].taskIds.filter(id => id !== taskId)
+            };
+        }
+        return { ...prevData, tasks: optimisticTasks, columns: optimisticColumns };
+    });
+    closeModal(); // Close modal if task is deleted from it
 
-      // Optimistic UI update
-      const optimisticTasks = { ...boardData.tasks };
-      delete optimisticTasks[taskId];
-      const optimisticColumn = column ? { ...column, taskIds: column.taskIds.filter(id => id !== taskId) } : null;
-      const optimisticColumns = column && optimisticColumn ? { ...boardData.columns, [columnId]: optimisticColumn } : { ...boardData.columns };
+    try {
+        const result = await deleteTask(taskId);
+        if (!result || !result.columnTaskIds) {
+            throw new Error('Task not found or delete failed');
+        }
+        // API Success: Ensure the correct column's taskIds are updated
+        setBoardData(prev => {
+            if (!prev) return null;
+            const columnId = taskToDelete.columnId; // Use original columnId
+            let finalColumns = { ...prev.columns };
+            if (finalColumns[columnId]) {
+                 finalColumns[columnId] = { 
+                     ...finalColumns[columnId], 
+                     taskIds: result.columnTaskIds ?? finalColumns[columnId].taskIds // Use taskIds from response
+                 };
+            }
+             // Ensure task is removed from tasks map (already done optimistically)
+            const finalTasks = { ...prev.tasks }; 
+            delete finalTasks[taskId]; 
+            return { ...prev, tasks: finalTasks, columns: finalColumns };
+        });
 
-      setBoardData({ ...boardData, tasks: optimisticTasks, columns: optimisticColumns });
-
-      const result = await deleteTask(taskId);
-      if (!result) {
-          setError('Failed to delete task.');
-          setBoardData(originalBoardData); // Revert
-      } 
-      // Optional: Confirm state based on result.column if needed
-      else if (result.column) {
-          setBoardData(prev => prev ? { ...prev, columns: { ...prev.columns, [result.column!.id]: result.column! } } : null);
-      }
+    } catch (err) {
+        console.error("Failed to delete task:", err);
+        setError('Failed to delete task.');
+        // Revert
+        setBoardData(originalBoardData);
+    }
   };
 
-  // --- Render Logic ---
-  if (loading) {
-    return <div className="loading">Loading board...</div>;
-  }
-
-  if (error || !boardData) {
-    return <div className="error">Error: {error || 'Board data is unavailable.'}</div>;
-  }
-
-  const { tasks, columns, columnOrder } = boardData;
-
-  // --- Filtering Logic --- 
-  const lowerSearchTerm = searchTerm.toLowerCase();
-  const filteredTasks = lowerSearchTerm
-    ? Object.values(tasks).filter(task => 
-        task.title.toLowerCase().includes(lowerSearchTerm) ||
-        (task.description && task.description.toLowerCase().includes(lowerSearchTerm))
-      )
-    : Object.values(tasks); // No filter if search is empty
+  // --- Filtering Logic ---
+  const getFilteredTasks = (tasks: { [key: string]: Task }, term: string): { [key: string]: Task } => {
+      if (!term) return tasks;
+      const lowerCaseTerm = term.toLowerCase();
+      return Object.entries(tasks)
+          .filter(([_, task]) => 
+              task.title.toLowerCase().includes(lowerCaseTerm) || 
+              (task.description && task.description.toLowerCase().includes(lowerCaseTerm))
+          )
+          .reduce((acc, [id, task]) => {
+              acc[id] = task;
+              return acc;
+          }, {} as { [key: string]: Task });
+  };
   
-  // Create a map for quick lookup of filtered tasks by ID
-  const filteredTaskMap = filteredTasks.reduce((acc, task) => {
-      acc[task.id] = task;
-      return acc;
-  }, {} as { [key: string]: Task });
+  const filteredTasks = boardData ? getFilteredTasks(boardData.tasks, searchTerm) : {};
+  // Filter columns to only show those that contain filtered tasks or are empty
+  const visibleColumns = boardData ? boardData.columnOrder.map(colId => boardData.columns[colId]).filter(col => 
+      col && (col.taskIds.length === 0 || col.taskIds.some(taskId => filteredTasks[taskId]))
+  ) : [];
+
+  // --- Render Logic ---
+  if (loading) return <div className="loading"><div className="spinner"></div> Loading board...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
+  if (!boardData) return <div className="error">No board data available.</div>;
 
   return (
     <div className="board-container">
-      {/* Remove old top-level add task form */} 
-
       <DragDropContext onDragEnd={onDragEnd}>
+        {/* Droppable for columns (if column drag-n-drop is added later) */}
         <Droppable droppableId="all-columns" direction="horizontal" type="column">
-          {(provided) => (
-            <div 
-                className="board" 
-                {...provided.droppableProps} 
-                ref={provided.innerRef}
-            >
-              {columnOrder.map((columnId, index) => {
-                const column = columns[columnId];
-                if (!column) return null; 
+         {(provided) => (
+           <div className="board" {...provided.droppableProps} ref={provided.innerRef}>
+             {/* Render only visible columns */}
+            {visibleColumns.map((column, index) => {
+              // 1. Get all task objects for this column directly from boardData
+              const allColumnTasks = column.taskIds
+                  .map(taskId => boardData.tasks[taskId]) 
+                  .filter(task => task !== undefined); 
+              // 2. Filter these tasks based on the searchTerm result (filteredTasks map)
+              const visibleTasks = allColumnTasks.filter(task => filteredTasks[task.id]);
 
-                // Filter tasks for this specific column using the pre-filtered map
-                const columnTasks = column.taskIds
-                                        .map(taskId => filteredTaskMap[taskId]) // Get tasks from the filtered map
-                                        .filter(Boolean); // Remove any undefined entries (tasks not matching search)
-                
-                return (
-                  <Column
-                    key={column.id}
-                    column={column}
-                    tasks={columnTasks} // Pass the filtered tasks
-                    index={index} 
-                    onAddTask={handleAddTask} 
-                    onRenameColumn={handleRenameColumn} 
-                    onDeleteColumn={handleDeleteColumn} 
-                    onOpenTaskModal={openModal} 
+              return (
+                <Column 
+                  key={column.id} 
+                  column={column} 
+                  tasks={visibleTasks} // Pass only the visible tasks
+                  index={index} // For potential column DnD
+                  onAddTask={handleAddTask} // Pass handler
+                  onOpenTaskModal={openModal} // Correct prop name
+                  onDeleteColumn={handleDeleteColumn} // Pass handler
+                  onRenameColumn={handleRenameColumn} // Pass handler
+                />
+              );
+            })}
+            {provided.placeholder}
+              <div className="add-column-section">
+                <form onSubmit={handleAddColumn} className="add-column-form">
+                  <input 
+                    type="text" 
+                    value={newColumnTitle}
+                    onChange={(e) => setNewColumnTitle(e.target.value)}
+                    placeholder="Add new column..."
+                    className="add-column-input"
+                    required
                   />
-                );
-              })}
-              {provided.placeholder}
-               {/* --- Add New Column Form --- */}
-                <div className="add-column-section">
-                    <form onSubmit={handleAddColumn} className="add-column-form">
-                        <input
-                        type="text"
-                        placeholder="+ Add another list"
-                        value={newColumnTitle}
-                        onChange={(e) => setNewColumnTitle(e.target.value)}
-                        />
-                        <button type="submit" disabled={!newColumnTitle.trim()}>Add List</button>
-                    </form>
-                </div>
-            </div>
-          )}
+                  <button type="submit" className="add-column-button" disabled={!newColumnTitle.trim()}>Add Column</button>
+                </form>
+              </div>
+          </div>
+        )}
         </Droppable>
       </DragDropContext>
 
-      {/* Task Details Modal */} 
-      <TaskModal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        task={selectedTask}
-        onSave={handleSaveTask}
-        onDelete={handleDeleteTask} // Pass delete handler
-      />
+      {selectedTask && (
+        <TaskModal 
+          isOpen={isModalOpen} 
+          onRequestClose={closeModal} 
+          task={selectedTask}
+          onSave={handleSaveTask} // Pass the save handler
+          onDelete={handleDeleteTask} // Pass the delete handler
+        />
+      )}
     </div>
   );
 };
 
-export default Board;
-
-// Helper to set the app element for react-modal (accessibility)
-// Call this once in your main App component or index.tsx
+// Modal setup (ensure it runs once)
+let modalInitialized = false;
 export const setupModal = () => {
-    const appElement = document.getElementById('root');
-    if (appElement) {
-        Modal.setAppElement(appElement);
-    } else {
-        console.error("Modal app element '#root' not found. Accessibility features may be impaired.");
+    if (!modalInitialized && typeof window !== 'undefined') {
+        const appElement = document.getElementById('root');
+        if (appElement) {
+            Modal.setAppElement(appElement); 
+            modalInitialized = true;
+        } else {
+            console.warn('Modal app element #root not found. Ensure it exists in your HTML.');
+        }
     }
-}; 
+};
+
+export default Board; 

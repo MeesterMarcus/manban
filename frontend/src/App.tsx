@@ -1,44 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import Board, { setupModal } from './components/Board'; // Import setupModal
-import Header from './components/Header'; // Import Header
+import Header from './components/Header';
+import Board, { setupModal } from './components/Board';
+// import { fetchDefaultProject } from './services/taskService'; // Removed import
+import { Project } from './types';
 import Sidebar from './components/Sidebar'; // Import Sidebar
-import { fetchDefaultProject } from './services/taskService'; // Import fetch service
-import { Project } from './types'; // Import Project type
-import './App.css'; // Keep general styles if needed, or remove if Board.css covers everything
+import './App.css';
 
 function App() {
-  const [projectName, setProjectName] = useState<string>('Loading Project...');
-  const [searchTerm, setSearchTerm] = useState<string>(''); // Add search state
+  const [projectName, setProjectName] = useState('Loading project...');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Fetch default project name on mount
   useEffect(() => {
-    setupModal(); // Set up modal accessibility
-    const loadProject = async () => {
-      const project = await fetchDefaultProject();
-      if (project) {
-        setProjectName(project.name);
-      } else {
-        setProjectName('Project Not Found');
-      }
-    };
-    loadProject();
+    // setupModal(); // Call modal setup
+    // // Fetch default project data
+    // const loadProject = async () => {
+    //   const project = await fetchDefaultProject(); // Removed call
+    //   if (project) {
+    //     setProjectName(project.name);
+    //   } else {
+    //     setProjectName('Default Project'); // Fallback name
+    //   }
+    // };
+    // loadProject();
+    setupModal(); // Call modal setup
+    setProjectName('Default Project'); // Set name directly for now
+
   }, []);
 
-  // Handler for search input changes
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+};
+
   return (
-    <div className="App">
-      <Sidebar /> { /* Render Sidebar */}
-      <div className="main-content"> { /* Wrapper for Header and Board */}
-        <Header 
-          projectName={projectName} 
-          searchTerm={searchTerm} // Pass searchTerm down
-          onSearchChange={handleSearchChange} // Pass handler down
-        /> 
-        <Board searchTerm={searchTerm} /> {/* Pass searchTerm to Board */}
+    <div className={`App ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar collapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
+      <div className="main-content">
+          <Header 
+              projectName={projectName} 
+              onSearch={handleSearch} 
+          />
+          <Board searchTerm={searchTerm} />
       </div>
     </div>
   );

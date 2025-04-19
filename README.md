@@ -67,64 +67,70 @@ A simple Jira-like task board application with a Node.js/TypeScript backend and 
 
 ## Running the Application (Development)
 
-### Option 1: Running Locally (Single Command - Recommended for Dev)
+### Option 1: Hybrid Mode (DB in Docker, Code Locally - Recommended for Dev)
 
-From the project **root** directory, simply run:
+This approach uses Docker only for the PostgreSQL database, allowing you to run the backend and frontend locally with faster hot-reloading.
 
-```bash
-npm run dev
+**Prerequisites:**
+*   Docker Desktop running.
+*   A `.env` file created in the project root (see `.env.example` or instructions below).
+
+**Workflow:**
+
+1.  **Start Everything (DB Container + Local Servers):**
+    Open a terminal in the project root and run:
+    ```bash
+    npm run dev
+    ```
+    *   This command will first ensure the PostgreSQL Docker container (`db`) is running (using `npm run db:start`).
+    *   Then, it will start both the backend and frontend development servers concurrently in the same terminal.
+
+2.  **Access:** Open your browser to `http://localhost:3000` (or the port specified by the React dev server).
+
+3.  **Stopping:** 
+    *   Stop the local servers: Press `Ctrl + C` in the terminal running `npm run dev`.
+    *   Stop the database container (optional, if you want to free up resources): Run `npm run db:stop` or `npm run docker:down`.
+
+**`.env` File Setup:**
+Create a file named `.env` in the project root directory with the following content (adjust password if needed):
+```dotenv
+# .env for local backend connecting to Docker DB
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=kanban_user
+DB_PASSWORD=supersecretpassword
+DB_NAME=kanban_db
 ```
 
-This uses `npm-run-all` to start both the backend API server (typically on `http://localhost:3001`) and the frontend development server (typically on `http://localhost:3000` or the next available port) concurrently in a single terminal.
+### Option 2: Full Docker Mode (All Services in Docker)
 
-### Option 2: Running Locally (Manual - Separate Terminals)
+Runs the entire application (PostgreSQL, Backend, Frontend/Nginx) using Docker Compose. This is closer to a production setup but typically has slower startup and no hot-reloading for code changes.
 
-If you prefer separate terminals:
+**Prerequisites:**
+*   Docker Desktop running.
 
-1.  **Start the Backend Server:**
-    ```bash
-    npm run dev:backend
-    ```
-    (Alternatively: `cd backend && npm start` - requires `npm run build` first if not using nodemon/ts-node)
-
-2.  **Start the Frontend Server:**
-    In a **separate terminal**, run:
-    ```bash
-    npm run dev:frontend
-    ```
-    (Alternatively: `cd frontend && npm start`)
-
-## Running the Application (Docker)
-
-Ensure you have Docker and Docker Compose installed.
+**Workflow:**
 
 1.  **Build and Start Containers:**
     From the project root directory, run:
     ```bash
     npm run docker:up:d -- --build
     ```
-    *   This uses the npm script which runs `docker-compose up -d --build`.
-    *   It builds the images (if needed) and starts the containers in detached mode.
-    *   You can also use `npm run docker:build` and `npm run docker:up` separately.
+    (Use `npm run docker:up` to run in the foreground and see logs).
 
-2.  **Access the Application:**
-    *   The frontend is accessible at `http://localhost:8080` (served and proxied by Nginx).
+2.  **Access:** Open your browser to `http://localhost:8080` (served by Nginx).
 
 3.  **View Logs:**
     ```bash
-    docker-compose logs -f
+    docker-compose logs -f 
     ```
-    (Or `docker-compose logs backend` / `docker-compose logs frontend` for specific services)
 
-4.  **Stopping Containers:**
+4.  **Stopping:**
     ```bash
     npm run docker:down
     ```
-    (This runs `docker-compose down`)
 
 ## Available Scripts
-
-### Root (`./`)
 
 *   `npm install`: Installs dependencies for root and all workspaces.
 *   `npm run dev:backend`: Starts the backend development server (`nodemon`).
@@ -132,11 +138,15 @@ Ensure you have Docker and Docker Compose installed.
 *   `npm run build:backend`: Runs the TypeScript build for the backend.
 *   `npm run build:frontend`: Creates a production build of the frontend app.
 *   `npm run build`: Builds both backend and frontend.
-*   `npm run dev`: Starts **both** backend and frontend development servers concurrently.
-*   `npm run docker:build`: Builds the Docker images using `docker-compose build`.
-*   `npm run docker:up`: Starts the containers using `docker-compose up`.
-*   `npm run docker:up:d`: Starts the containers in detached mode using `docker-compose up -d`.
-*   `npm run docker:down`: Stops and removes the containers using `docker-compose down`.
+*   `npm run dev`: **Starts DB container** (if not running) AND **both** backend/frontend dev servers concurrently.
+
+*   `npm run db:start`: Starts **only** the PostgreSQL container using Docker Compose (used by `npm run dev`).
+*   `npm run db:stop`: Stops **only** the PostgreSQL container.
+
+*   `npm run docker:build`: Builds the Docker images for backend & frontend using `docker-compose build`.
+*   `npm run docker:up`: Starts **all** containers (DB, Backend, Frontend) using `docker-compose up`.
+*   `npm run docker:up:d`: Starts **all** containers in detached mode.
+*   `npm run docker:down`: Stops and removes **all** containers defined in `docker-compose.yml`.
 
 ## Future Improvements
 

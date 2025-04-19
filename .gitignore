@@ -132,4 +132,13 @@ frontend/.env.*
 *.ntvs*
 *.njsproj
 *.sln
-*.sw? 
+*.sw?
+
+# Docker
+docker-compose.yml
+backend/Dockerfile
+frontend/Dockerfile
+frontend/nginx.conf
+
+# PostgreSQL Data Volume (if mapped locally)
+postgres-data/ 

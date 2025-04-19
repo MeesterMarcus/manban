@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import './Sidebar.css'; // Create this file next
 
+interface SidebarProps {
+    collapsed: boolean;
+    onToggle: () => void;
+}
+
 // Simple type for menu items for now
 interface MenuItem {
   id: string;
@@ -8,7 +13,7 @@ interface MenuItem {
   icon?: string; // Placeholder for icon later
 }
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const [isOpen, setIsOpen] = useState(true); // Sidebar starts open
 
   const menuItems: MenuItem[] = [
@@ -22,15 +27,15 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-      <button onClick={toggleSidebar} className="toggle-button">
-        {isOpen ? '«' : '»'} 
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <button onClick={onToggle} className="toggle-button">
+        {collapsed ? '\u00BB' : '\u00AB'} 
       </button>
       <div className="menu-items">
         {menuItems.map((item) => (
           <a href="#" key={item.id} className="menu-item">
             <span className="menu-icon">{item.icon || '-'}</span>
-            {isOpen && <span className="menu-label">{item.label}</span>}
+            {!collapsed && <span className="menu-label">{item.label}</span>}
           </a>
         ))}
       </div>
