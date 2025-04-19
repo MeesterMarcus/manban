@@ -1,0 +1,340 @@
+.board-container {
+  /* padding: 20px; */ /* Padding might interfere, let board handle its own */
+  font-family: sans-serif;
+  background-color: #f0f2f5; /* Lighter background for overall page */
+  /* min-height: 100vh; /* Remove min-height, let parent control height */
+  display: flex; /* Keep as flex container for the board itself */
+  flex-direction: column; /* Stack children vertically */
+  flex-grow: 1; /* Allow this container to fill space in .App */
+  overflow: hidden; /* Prevent this container from scrolling */
+}
+
+.board {
+  display: flex;
+  /* justify-content: space-around; /* Let items align left */
+  align-items: flex-start; /* Align columns top */
+  gap: 15px;
+  padding: 20px; /* Add padding here */
+  overflow-x: auto; /* Allow horizontal scrolling for columns */
+  overflow-y: hidden; /* Hide vertical scroll */
+  flex-grow: 1; /* Allow board to fill vertical space within board-container */
+  /* height: 100%; /* Let flex-grow handle height */
+}
+
+.column {
+  background-color: #ebecf0; /* Jira-like column color */
+  border-radius: 6px; /* Slightly less rounded */
+  width: 280px; /* Slightly narrower */
+  /* padding: 10px; */ /* Padding handled by header/list now */
+  display: flex;
+  flex-direction: column;
+  /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  flex-shrink: 0; /* Prevent columns from shrinking */
+  max-height: 100%; /* Ensure column doesn't overflow the board's height */
+  box-sizing: border-box; /* Ensure padding included in height */
+}
+
+/* Column Header */
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 8px 5px 8px; /* Adjusted padding */
+    margin-bottom: 5px; /* Reduced margin */
+    flex-shrink: 0; /* Prevent header shrinking */
+}
+
+.column-header h3 {
+  /* text-align: center; */
+  color: #172b4d; /* Dark blue text */
+  margin: 0;
+  padding: 5px;
+  font-size: 0.95em;
+  font-weight: 600;
+  flex-grow: 1;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.column-header h3:hover {
+    background-color: #dfe1e6;
+}
+
+.column-title-input {
+    font-size: 0.95em;
+    font-weight: 600;
+    padding: 5px;
+    border: 2px solid #007bff; /* Highlight editing */
+    border-radius: 3px;
+    flex-grow: 1;
+    margin-right: 5px;
+}
+
+.delete-column-button {
+    background: none;
+    border: none;
+    color: #6b778c;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 0 5px;
+    border-radius: 3px;
+}
+.delete-column-button:hover {
+    background-color: #dfe1e6;
+    color: #de350b; /* Red hover for delete */
+}
+
+.task-list {
+  /* background-color: #f4f5f7; /* Match column background */
+  padding: 0 8px 8px 8px; /* Add bottom padding */
+  flex-grow: 1;
+  min-height: 50px; /* Ensure drop zone is visible */
+  /* border-radius: 4px; */
+  transition: background-color 0.2s ease;
+  overflow-y: auto; /* This will now handle the task scrolling within the full-height column */
+}
+
+.task-list.dragging-over {
+  background-color: #d6e0ff; /* Lighter blue when dragging over */
+}
+
+.task-card {
+  background-color: #ffffff;
+  border-radius: 3px; /* Jira like */
+  padding: 8px 12px;
+  margin-bottom: 8px; /* Slightly less margin */
+  box-shadow: 0 1px 1px rgba(9,30,66,.25);
+  cursor: pointer; /* Changed from grab */
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-card:hover {
+   background-color: #f4f5f7;
+}
+
+.task-card h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.95em;
+  font-weight: 500; /* Normal weight */
+  color: #172b4d;
+}
+
+.task-card p {
+  margin: 0;
+  font-size: 0.85em;
+  color: #5e6c84; 
+}
+
+.task-card.dragging {
+  box-shadow: 0 4px 8px rgba(9,30,66,.25);
+  background-color: #f0f8ff;
+}
+
+/* Add Task Inline Form */
+.add-task-section {
+    padding-top: 10px;
+    padding-left: 8px; /* Match task-list horizontal padding */
+    padding-right: 8px; /* Match task-list horizontal padding */
+}
+
+.add-task-button {
+    background: none;
+    border: none;
+    color: #5e6c84;
+    padding: 8px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+.add-task-button:hover {
+    background-color: #dfe1e6;
+}
+
+.add-task-inline-form input[type="text"] { 
+    width: 100%;
+    padding: 8px 12px; /* Match task-card padding */
+    border: none;
+    border-radius: 3px; 
+    box-shadow: 0 1px 1px rgba(9,30,66,.25); /* Match task-card shadow */
+    margin-bottom: 8px; /* Match task-card margin */
+    font-size: 0.95em;
+    box-sizing: border-box; 
+}
+.add-task-inline-form input[type="text"]:focus {
+    outline: 2px solid #007bff;
+}
+
+.add-task-inline-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.add-task-inline-actions button {
+    padding: 6px 12px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.add-task-inline-actions button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+}
+.add-task-inline-actions button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.add-task-inline-actions button[type="button"] {
+    background: none;
+    color: #42526e;
+}
+.add-task-inline-actions button[type="button"]:hover {
+    background-color: #dfe1e6;
+}
+
+/* Add New Column Section */
+.add-column-section {
+    background-color: #ebecf0;
+    border-radius: 6px;
+    padding: 10px;
+    width: 280px;
+    flex-shrink: 0; 
+}
+
+.add-column-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.add-column-form input {
+    padding: 8px 12px;
+    border: 1px solid #dfe1e6;
+    border-radius: 3px;
+    background-color: #fafbfc;
+}
+.add-column-form input:focus {
+    outline: none;
+    border-color: #007bff;
+    background-color: #fff;
+}
+
+.add-column-form button {
+    padding: 8px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.add-column-form button:disabled {
+    background-color: #a5adba;
+    cursor: not-allowed;
+}
+.add-column-form button:not(:disabled):hover {
+    background-color: #0056b3;
+}
+
+
+/* Task Modal Styles */
+.task-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.task-modal-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+    color: #172b4d;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 2em;
+    line-height: 1;
+    cursor: pointer;
+    color: #6b778c;
+    padding: 0 5px;
+}
+.close-button:hover {
+    color: #172b4d;
+}
+
+.task-modal-form .form-group {
+    margin-bottom: 15px;
+}
+
+.task-modal-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #5e6c84;
+    font-size: 0.9em;
+}
+
+.task-modal-form input[type="text"],
+.task-modal-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
+}
+.task-modal-form textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end; /* Align buttons to the right */
+    gap: 10px;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.form-actions button {
+    padding: 10px 15px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.save-button {
+    background-color: #007bff;
+    color: white;
+}
+.save-button:hover {
+    background-color: #0056b3;
+}
+
+.delete-button {
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+.delete-button:hover {
+    background-color: #c82333; /* Darker red */
+}
+
+/* General Loading/Error */
+.loading, .error {
+  text-align: center;
+  padding: 50px;
+  font-size: 1.2em;
+  color: #555;
+}
+
+.error {
+  color: #d9534f; 
+} 

@@ -1,0 +1,77 @@
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #0747a6; /* Jira blue */
+  color: #deebff; /* Light blue text */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: sticky; /* Keep header at top */
+  top: 0;
+  z-index: 10;
+}
+
+.project-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.project-icon {
+  background-color: #42526e; /* Dark gray */
+  color: white;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.app-header h1 {
+  font-size: 1.3em;
+  margin: 0;
+  font-weight: 500;
+}
+
+.user-info span {
+  display: inline-flex; /* Use flex to center content */
+  align-items: center;
+  justify-content: center;
+  width: 32px;  /* Set explicit width */
+  height: 32px; /* Set explicit height (equal to width) */
+  /* padding: 5px 10px; /* Remove padding, size controlled by width/height */
+  border-radius: 50%; /* Ensure perfect circle */
+  background-color: #4CAF50; /* Example: Green background */
+  color: white; /* White text */
+  font-size: 0.9em;
+  font-weight: bold; /* Make initials stand out */
+  cursor: pointer; /* Indicate it will be clickable */
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Space between search and user info */
+}
+
+.search-input {
+  padding: 6px 10px;
+  border-radius: 3px;
+  border: 1px solid #dfe1e6; /* Lighter border */
+  background-color: #ffffff; /* White background */
+  color: #172b4d; /* Dark text */
+  font-size: 0.9em;
+  width: 200px; /* Adjust as needed */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: #6b778c; /* Standard placeholder color */
+}
+
+.search-input:focus {
+  background-color: #ffffff; /* Keep white */
+  color: #172b4d; /* Keep dark text */
+  border-color: #007bff; /* Blue focus border */
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); /* Add subtle focus glow */
+} 
